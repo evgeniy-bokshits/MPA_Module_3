@@ -1,57 +1,64 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Migrations;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
 
-using Core.Infrastructure.Models;
 using DAL.DBContexts.CatalogDBContext;
+using DAL.Interfaces;
+using Core.Infrastructure.Models;
 
-namespace DAL.Repositories.ProductRepository
+namespace DAL.Implementations;
+
+public class ProductRepository : IProductRepository
 {
-    public class ProductRepository : IProductRepository
+    private readonly CatalogDbContext _dbContext;
+
+    public ProductRepository(CatalogDbContext dbContext)
     {
-        private readonly CatalogDbContext _dbContext;
+        _dbContext = dbContext;
+    }
 
-        public ProductRepository(CatalogDbContext dbContext)
+    public async Task<Product> AddProduct(Product product)
+    {
+        await _dbContext.Products.AddAsync(product);
+        await _dbContext.SaveChangesAsync();
+        return product;
+    }
+
+    public async Task DeleteProduct(int id)
+    {
+        var product = await _dbContext.Products.FirstOrDefaultAsync(a => a.Id == id);
+        if (product is null)
         {
-            _dbContext = dbContext;
+            throw new Exception("Product not found");
         }
 
-        public async Task<Product> AddProduct(Product product)
-        {
-            _dbContext.Products.Add(product);
-            await _dbContext.SaveChangesAsync();
-            return product;
-        }
+        _dbContext.Remove(product);
+        await _dbContext.SaveChangesAsync();
+    }
 
-        public async Task DeleteProduct(int id)
-        {
-            var product = await _dbContext.Products.FirstOrDefaultAsync(a => a.Id == id);
-            if (product is null)
-            {
-                throw new Exception("Product was not found");
-            }
+    public async Task<List<Product>> GetProducts(int categoryId, int skip, int count)
+    {
+        return await _dbContext.Products
+            .Where(p => p.CategoryId == categoryId)
+            .Skip(skip)
+            .Take(count)
+            .ToListAsync();
+    }
 
-            _dbContext.Products.Remove(product);
-            await _dbContext.SaveChangesAsync();
-        }
+    public async Task<Product> GetProduct(int id)
+    {
+        return await _dbContext.Products.FirstOrDefaultAsync(a => a.Id == id);
+    }
 
-        public async Task<List<Product>> GetAllProducts()
-        {
-            return await _dbContext.Products.ToListAsync();
-        }
+    public async Task<Product> UpdateProduct(Product category)
+    {
+        _dbContext.Update(category);
+        await _dbContext.SaveChangesAsync();
+        return category;
+    }
 
-        public Task<Product> GetProduct(int id)
-        {
-            return _dbContext.Products.FirstOrDefaultAsync(a => a.Id == id);
-        }
-
-        public async Task<Product> UpdateProduct(Product category)
-        {
-            _dbContext.Products.AddOrUpdate(category);
-            await _dbContext.SaveChangesAsync();
-            return category;
-        }
+    public async Task DeleteProductsByCategory(int categoryId)
+    {
+        var products = await _dbContext.Products.Where(p => p.CategoryId == categoryId).ToListAsync();
+        _dbContext.RemoveRange(products);
+        await _dbContext.SaveChangesAsync();
     }
 }

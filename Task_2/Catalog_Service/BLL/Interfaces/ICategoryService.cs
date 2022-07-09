@@ -1,11 +1,10 @@
 ﻿using Core.Infrastructure.Models;
 
-namespace DAL.Interfaces;
+namespace BLL.Interfaces;
 
-public interface ICategoryRepository
+public interface ICategoryService
 {
-    Task<Category> GetCategory(int id);
-    Task<List<Category>> GetAllCategories();
+    Task<IEnumerable<Category>> GetCategories();
     Task<Category> AddCategory(Category category);
     Task<Category> UpdateCategory(Category category);
     Task DeleteCategory(int id);
